@@ -32,6 +32,7 @@
 # getStatus() - Get the state of the output and CC/CV
 #
 
+import sys
 import time
 import serial
 
@@ -41,20 +42,33 @@ class kd3005pInstrument:
 	status = {}
 	
 	def __init__(self, psu_com):
-		psu_com.isOpen()
-		self.psu_com = psu_com
-		self.isConnected = True
-		self.status=self.getStatus()
+		try:
+			psu_com = serial.Serial(
+				port=psu_com,
+				baudrate=9600,
+				parity=serial.PARITY_NONE,
+				stopbits=serial.STOPBITS_ONE,
+				bytesize=serial.EIGHTBITS
+			)
+			psu_com.isOpen()
+			self.psu_com = psu_com
+			self.isConnected = True
+			self.status=self.getStatus()
+		except:
+			print("COM port failure:")
+			print(sys.exc_info())
+			self.psu_com = None
+			self.isConnected = False
 	
 	def close(self):
 		self.psu_com.close()
 	
 	def serWriteAndRecieve(self, data, delay=0.05): # data er ein stre
-		self.psu_com.write(data)
+		self.psu_com.write(data.encode())
 		out = ''
 		time.sleep(delay)
 		while self.psu_com.inWaiting() > 0:
-			out += self.psu_com.read(1)
+			out += self.psu_com.read(1).decode()
 		if out != '':
 			return out
 		return None
@@ -105,4 +119,3 @@ class kd3005pInstrument:
 		else:
 			self.status["Output"]="On"
 		return self.status
-	
